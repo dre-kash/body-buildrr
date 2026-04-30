@@ -31,32 +31,32 @@ const DAYS_ORDER: Day[] = [
 const REP_RANGES: Record<Goal, [number, number]> = {
   strength: [3, 6],
   hypertrophy: [8, 12],
-  general_fitness: [10, 15],
+  muscular_endurance: [15, 20],
 };
 
 const REST_SECONDS: Record<Goal, number> = {
   strength: 180,
   hypertrophy: 75,
-  general_fitness: 52,
+  muscular_endurance: 45,
 };
 
 // Minutes per exercise block, accounting for real-world setup/transitions
 const MINS_PER_STRAIGHT_BLOCK: Record<Goal, number> = {
   strength: 12,
   hypertrophy: 8,
-  general_fitness: 6,
+  muscular_endurance: 5,
 };
 
 const MINS_PER_SUPERSET_BLOCK: Record<Goal, number> = {
   strength: 14,
   hypertrophy: 10,
-  general_fitness: 8,
+  muscular_endurance: 7,
 };
 
 const MINS_PER_TRISET_BLOCK: Record<Goal, number> = {
   strength: 16,
   hypertrophy: 12,
-  general_fitness: 10,
+  muscular_endurance: 9,
 };
 
 const WARMUP_MINS = 5;
@@ -164,47 +164,106 @@ const FOCUS_TO_PATTERNS: Record<
   },
 };
 
-// ─── Patterns per session type ────────────────────────────────────────────────
+// ─── Session templates (typeIndex-aware) ─────────────────────────────────────
+//
+// For session types that repeat in a week (full_body, upper, lower),
+// typeIndex=0 uses a horizontal-emphasis template and typeIndex=1 uses a
+// vertical-emphasis template so the two sessions have genuinely different
+// exercise selections.
 
-const SESSION_PATTERNS: Record<
-  SessionType,
-  {
-    required: MovementPattern[];
-    optional: MovementPattern[];
-    accessories: AccessoryCategory[];
+interface SessionTemplate {
+  required: MovementPattern[];
+  optional: MovementPattern[];
+  accessories: AccessoryCategory[];
+}
+
+function getTemplate(type: SessionType, typeIndex: number): SessionTemplate {
+  const alt = typeIndex > 0; // A = default/horizontal, B = alt/vertical
+
+  switch (type) {
+    case 'push':
+      // Push always leads with horizontal then vertical
+      return {
+        required: ['horizontal_push', 'vertical_push'],
+        optional: [],
+        accessories: ['triceps', 'side_delt', 'chest_iso'],
+      };
+
+    case 'pull':
+      // Pull A: vertical pull leads (lat pulldown / pull-up)
+      // Pull B: horizontal pull leads (row)
+      return alt
+        ? {
+            required: ['horizontal_pull', 'vertical_pull'],
+            optional: [],
+            accessories: ['biceps', 'rear_delt', 'back_iso'],
+          }
+        : {
+            required: ['vertical_pull', 'horizontal_pull'],
+            optional: [],
+            accessories: ['biceps', 'rear_delt', 'back_iso'],
+          };
+
+    case 'legs':
+      // Legs A: squat-led (quads emphasis)
+      // Legs B: hinge-led (posterior chain / glute emphasis)
+      return alt
+        ? {
+            required: ['hinge', 'squat'],
+            optional: [],
+            accessories: ['glute_iso', 'calves', 'core'],
+          }
+        : {
+            required: ['squat', 'hinge'],
+            optional: [],
+            accessories: ['glute_iso', 'calves', 'core'],
+          };
+
+    case 'upper':
+      // Upper A: horizontal push + horizontal pull leads
+      // Upper B: vertical push + vertical pull leads
+      return alt
+        ? {
+            required: ['vertical_push', 'vertical_pull'],
+            optional: ['horizontal_push', 'horizontal_pull'],
+            accessories: ['biceps', 'triceps', 'rear_delt', 'side_delt'],
+          }
+        : {
+            required: ['horizontal_push', 'horizontal_pull'],
+            optional: ['vertical_push', 'vertical_pull'],
+            accessories: ['biceps', 'triceps', 'side_delt', 'rear_delt'],
+          };
+
+    case 'lower':
+      // Same as legs — squat / hinge alternate lead
+      return alt
+        ? {
+            required: ['hinge', 'squat'],
+            optional: [],
+            accessories: ['glute_iso', 'calves', 'core'],
+          }
+        : {
+            required: ['squat', 'hinge'],
+            optional: [],
+            accessories: ['glute_iso', 'calves', 'core'],
+          };
+
+    case 'full_body':
+      // Full Body A: horizontal push + horizontal pull + squat
+      // Full Body B: vertical push + vertical pull + hinge
+      return alt
+        ? {
+            required: ['vertical_push', 'vertical_pull', 'hinge'],
+            optional: ['horizontal_push', 'horizontal_pull', 'squat'],
+            accessories: ['biceps', 'rear_delt', 'triceps', 'calves'],
+          }
+        : {
+            required: ['horizontal_push', 'horizontal_pull', 'squat'],
+            optional: ['vertical_push', 'vertical_pull', 'hinge'],
+            accessories: ['biceps', 'triceps', 'side_delt', 'calves'],
+          };
   }
-> = {
-  push: {
-    required: ['horizontal_push', 'vertical_push'],
-    optional: [],
-    accessories: ['triceps', 'side_delt', 'chest_iso'],
-  },
-  pull: {
-    required: ['vertical_pull', 'horizontal_pull'],
-    optional: [],
-    accessories: ['biceps', 'rear_delt', 'back_iso'],
-  },
-  legs: {
-    required: ['squat', 'hinge'],
-    optional: [],
-    accessories: ['glute_iso', 'calves', 'core'],
-  },
-  upper: {
-    required: ['horizontal_push', 'horizontal_pull'],
-    optional: ['vertical_push', 'vertical_pull'],
-    accessories: ['biceps', 'triceps', 'side_delt', 'rear_delt'],
-  },
-  lower: {
-    required: ['squat', 'hinge'],
-    optional: [],
-    accessories: ['glute_iso', 'calves', 'core'],
-  },
-  full_body: {
-    required: ['horizontal_push', 'vertical_pull', 'squat'],
-    optional: ['horizontal_pull', 'vertical_push', 'hinge'],
-    accessories: ['biceps', 'triceps', 'side_delt', 'calves'],
-  },
-};
+}
 
 // ─── Superset Compatibility ───────────────────────────────────────────────────
 
@@ -467,7 +526,7 @@ function buildSession(
 ): Session {
   const { goal, sessionDuration, focusMuscles, focusPriority } = inputs;
   const totalSlots = EXERCISE_SLOTS[sessionDuration];
-  const template = SESSION_PATTERNS[type];
+  const template = getTemplate(type, typeIndex);
   const used = new Set<string>();
   const selected: Exercise[] = [];
 

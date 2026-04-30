@@ -1,41 +1,24 @@
 import { Muscle } from '@/lib/types';
 
-const MUSCLE_LABELS: Record<Muscle, string> = {
-  chest: 'Chest',
-  front_delt: 'Front Delt',
-  side_delt: 'Side Delt',
-  rear_delt: 'Rear Delt',
-  triceps: 'Triceps',
-  biceps: 'Biceps',
-  lats: 'Lats',
-  upper_back: 'Upper Back',
-  lower_back: 'Lower Back',
-  core: 'Core',
-  quads: 'Quads',
-  hamstrings: 'Hamstrings',
-  glutes: 'Glutes',
-  calves: 'Calves',
-  forearms: 'Forearms',
-  traps: 'Traps',
+const LABELS: Partial<Record<Muscle, string>> = {
+  chest: 'Chest', front_delt: 'Front Delt', side_delt: 'Side Delt',
+  rear_delt: 'Rear Delt', triceps: 'Triceps', biceps: 'Biceps',
+  lats: 'Lats', upper_back: 'Upper Back', lower_back: 'Lower Back',
+  core: 'Core', quads: 'Quads', hamstrings: 'Hamstrings',
+  glutes: 'Glutes', calves: 'Calves', forearms: 'Forearms', traps: 'Traps',
 };
 
-interface Props {
-  muscle: Muscle;
-  variant?: 'primary' | 'secondary';
-}
-
-export default function MuscleTag({ muscle, variant = 'primary' }: Props) {
-  const label = MUSCLE_LABELS[muscle] ?? muscle;
+export default function MuscleTag({ muscle, variant = 'primary' }: { muscle: Muscle; variant?: 'primary' | 'secondary' }) {
   return (
     <span
-      className="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
+      className="inline-block px-2 py-0.5 text-xs font-bold border"
       style={{
-        background: variant === 'primary' ? 'var(--accent)' : 'var(--muted-bg)',
-        color: variant === 'primary' ? '#fff' : 'var(--muted)',
-        border: variant === 'secondary' ? '1px solid var(--card-border)' : 'none',
+        background: variant === 'primary' ? 'var(--foreground)' : 'transparent',
+        color: variant === 'primary' ? 'var(--background)' : 'var(--muted)',
+        borderColor: variant === 'primary' ? 'var(--foreground)' : 'var(--divider)',
       }}
     >
-      {label}
+      {LABELS[muscle] ?? muscle}
     </span>
   );
 }

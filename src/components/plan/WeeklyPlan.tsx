@@ -7,7 +7,7 @@ import RestDayCard from './RestDayCard';
 const GOAL_LABELS: Record<UserInputs['goal'], string> = {
   strength: 'Strength',
   hypertrophy: 'Hypertrophy',
-  general_fitness: 'General Fitness',
+  muscular_endurance: 'Muscular Endurance',
 };
 
 const EQUIPMENT_LABELS: Record<UserInputs['equipment'], string> = {
@@ -17,67 +17,55 @@ const EQUIPMENT_LABELS: Record<UserInputs['equipment'], string> = {
 };
 
 const FOCUS_LABELS: Record<string, string> = {
-  chest: 'Chest',
-  back: 'Back',
-  shoulders: 'Shoulders',
-  arms: 'Arms',
-  legs: 'Legs',
-  glutes: 'Glutes',
-  full_body: 'Full Body',
+  chest: 'Chest', back: 'Back', shoulders: 'Shoulders', arms: 'Arms',
+  legs: 'Legs', glutes: 'Glutes', full_body: 'Full Body',
 };
 
 interface Props {
   plan: WeeklyPlan;
+  userId: string;
+  workoutStorageKey: string;
 }
 
-export default function WeeklyPlanView({ plan }: Props) {
+export default function WeeklyPlanView({ plan, userId, workoutStorageKey }: Props) {
   const { userInputs, days } = plan;
-  const trainingDays = days.filter((d) => d.isTrainingDay);
+  const trainingCount = days.filter((d) => d.isTrainingDay).length;
 
   return (
-    <div className="space-y-4">
-      {/* Plan summary chips */}
-      <div className="flex flex-wrap gap-2">
-        <Chip
-          label={userInputs.focusMuscles.map((f) => FOCUS_LABELS[f]).join(' + ')}
-          icon="🎯"
-        />
-        <Chip label={GOAL_LABELS[userInputs.goal]} icon="📈" />
-        <Chip label={EQUIPMENT_LABELS[userInputs.equipment]} icon="🏋️" />
-        <Chip label={`${trainingDays.length}×/week`} icon="📅" />
-        <Chip label={`${userInputs.sessionDuration} min`} icon="⏱️" />
+    <div className="space-y-3">
+      {/* Summary row */}
+      <div className="flex flex-wrap gap-2 pb-2" style={{ borderBottom: '1px solid var(--divider)' }}>
+        {[
+          userInputs.focusMuscles.map((f) => FOCUS_LABELS[f]).join(' + '),
+          GOAL_LABELS[userInputs.goal],
+          EQUIPMENT_LABELS[userInputs.equipment],
+          `${trainingCount}×/week`,
+          `${userInputs.sessionDuration} min`,
+        ].map((label) => (
+          <span
+            key={label}
+            className="text-xs px-2 py-1 border font-bold"
+            style={{ borderColor: 'var(--card-border)', color: 'var(--muted)', background: 'var(--card)' }}
+          >
+            {label}
+          </span>
+        ))}
       </div>
 
-      {/* Day cards */}
-      <div className="space-y-3">
-        {days.map((dayPlan) =>
-          dayPlan.isTrainingDay ? (
-            <DayCard
-              key={dayPlan.day}
-              dayPlan={dayPlan}
-              goal={userInputs.goal}
-            />
-          ) : (
-            <RestDayCard key={dayPlan.day} day={dayPlan.day} />
-          )
-        )}
-      </div>
+      {/* Days */}
+      {days.map((dayPlan) =>
+        dayPlan.isTrainingDay ? (
+          <DayCard
+            key={dayPlan.day}
+            dayPlan={dayPlan}
+            goal={userInputs.goal}
+            userId={userId}
+            workoutStorageKey={workoutStorageKey}
+          />
+        ) : (
+          <RestDayCard key={dayPlan.day} day={dayPlan.day} />
+        )
+      )}
     </div>
-  );
-}
-
-function Chip({ label, icon }: { label: string; icon: string }) {
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
-      style={{
-        background: 'var(--muted-bg)',
-        color: 'var(--foreground)',
-        border: '1px solid var(--card-border)',
-      }}
-    >
-      <span>{icon}</span>
-      {label}
-    </span>
   );
 }

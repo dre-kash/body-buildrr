@@ -2,11 +2,7 @@
 
 import { useState } from 'react';
 import { ExerciseSessionLog, SetLog, Goal } from '@/lib/types';
-import {
-  isReadyToProgress,
-  getPersonalBest,
-  formatDate,
-} from '@/lib/progressionUtils';
+import { isReadyToProgress, getPersonalBest, formatDate } from '@/lib/progressionUtils';
 
 interface Props {
   exerciseId: string;
@@ -17,13 +13,7 @@ interface Props {
   onDeleteLog: (date: string) => void;
 }
 
-export default function ExerciseLogCard({
-  exerciseName,
-  logs,
-  goal,
-  onAddLog,
-  onDeleteLog,
-}: Props) {
+export default function ExerciseLogCard({ exerciseName, logs, goal, onAddLog, onDeleteLog }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [logging, setLogging] = useState(false);
   const [set1, setSet1] = useState<SetLog>({ weight: null, reps: null });
@@ -31,7 +21,7 @@ export default function ExerciseLogCard({
 
   const ready = isReadyToProgress(logs, goal);
   const pb = getPersonalBest(logs);
-  const latestLog = logs.length > 0 ? logs[logs.length - 1] : null;
+  const latest = logs.length > 0 ? logs[logs.length - 1] : null;
 
   function handleSave() {
     onAddLog([set1, set2]);
@@ -40,160 +30,98 @@ export default function ExerciseLogCard({
     setSet2({ weight: null, reps: null });
   }
 
-  const canSave =
-    set1.reps !== null && set2.reps !== null;
+  const inputCls = 'flex-1 px-2 py-2 text-sm text-center border font-mono focus:outline-none';
+  const inputStyle = {
+    background: 'var(--background)',
+    borderColor: 'var(--card-border)',
+    color: 'var(--foreground)',
+  };
 
   return (
     <div
-      className="rounded-2xl overflow-hidden"
+      className="border"
       style={{
+        borderColor: ready ? 'var(--foreground)' : 'var(--card-border)',
         background: 'var(--card)',
-        border: ready
-          ? '2px solid var(--accent)'
-          : '1px solid var(--card-border)',
       }}
     >
-      {/* Header */}
       <button
-        className="w-full flex items-start justify-between p-4 text-left"
+        className="w-full flex items-start justify-between px-4 py-3 text-left"
         onClick={() => setExpanded((e) => !e)}
       >
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pr-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <p
-              className="font-bold text-sm"
-              style={{ color: 'var(--foreground)' }}
-            >
+            <p className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>
               {exerciseName}
             </p>
             {ready && (
               <span
-                className="text-xs font-black px-2 py-0.5 rounded-full animate-pulse"
-                style={{ background: 'var(--accent)', color: '#fff' }}
+                className="text-xs font-black px-2 py-0.5 border"
+                style={{ borderColor: 'var(--foreground)', color: 'var(--foreground)' }}
               >
                 ↑ Increase Weight
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3 mt-1">
-            {pb && (
-              <span className="text-xs" style={{ color: 'var(--muted)' }}>
-                PB: {pb.weight}kg × {pb.reps}
-              </span>
-            )}
-            {latestLog && (
-              <span className="text-xs" style={{ color: 'var(--muted)' }}>
-                Last: {formatDate(latestLog.date)} ·{' '}
-                {latestLog.sets
-                  .map((s) =>
-                    s.weight !== null ? `${s.weight}kg×${s.reps}` : `${s.reps} reps`
-                  )
-                  .join(', ')}
-              </span>
-            )}
-            {!latestLog && (
-              <span className="text-xs" style={{ color: 'var(--muted)' }}>
-                No logs yet
-              </span>
-            )}
-          </div>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+            {pb ? `PB: ${pb.weight}kg × ${pb.reps}` : latest ? `Last: ${formatDate(latest.date)}` : 'No logs yet'}
+          </p>
         </div>
-        <span className="text-xs ml-2 flex-shrink-0" style={{ color: 'var(--muted)' }}>
+        <span className="text-xs font-mono flex-shrink-0" style={{ color: 'var(--muted)' }}>
           {expanded ? '▲' : '▼'}
         </span>
       </button>
 
       {expanded && (
-        <div
-          className="px-4 pb-4 space-y-4"
-          style={{ borderTop: '1px solid var(--card-border)' }}
-        >
-          {/* Log new session */}
+        <div style={{ borderTop: '1px solid var(--divider)' }}>
           {!logging ? (
-            <button
-              onClick={() => setLogging(true)}
-              className="mt-3 w-full py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95"
-              style={{
-                background: 'var(--accent)',
-                color: '#fff',
-              }}
-            >
-              + Log Today&apos;s Sets
-            </button>
+            <div className="px-4 py-3">
+              <button
+                onClick={() => setLogging(true)}
+                className="w-full py-2.5 text-xs font-black uppercase tracking-widest transition-all active:scale-95"
+                style={{ background: 'var(--accent)', color: 'var(--accent-fg)' }}
+              >
+                + Log Today
+              </button>
+            </div>
           ) : (
-            <div className="mt-3 space-y-3">
-              <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
-                Log today&apos;s sets
+            <div className="px-4 py-3 space-y-3">
+              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--muted)' }}>
+                Today's Sets
               </p>
-              {[
-                { label: 'Set 1', state: set1, set: setSet1 },
-                { label: 'Set 2', state: set2, set: setSet2 },
-              ].map(({ label, state, set }) => (
+              {([{ label: 'Set 1', s: set1, set: setSet1 }, { label: 'Set 2', s: set2, set: setSet2 }]).map(({ label, s, set }) => (
                 <div key={label} className="flex items-center gap-2">
-                  <span
-                    className="text-xs font-semibold w-10 flex-shrink-0"
-                    style={{ color: 'var(--muted)' }}
-                  >
+                  <span className="text-xs font-bold w-10 flex-shrink-0" style={{ color: 'var(--muted)' }}>
                     {label}
                   </span>
                   <input
-                    type="number"
-                    inputMode="decimal"
-                    placeholder="kg"
-                    value={state.weight ?? ''}
-                    onChange={(e) =>
-                      set((prev) => ({
-                        ...prev,
-                        weight: e.target.value === '' ? null : Number(e.target.value),
-                      }))
-                    }
-                    className="flex-1 px-3 py-2 rounded-lg text-sm text-center"
-                    style={{
-                      background: 'var(--muted-bg)',
-                      border: '1px solid var(--card-border)',
-                      color: 'var(--foreground)',
-                    }}
+                    type="number" inputMode="decimal" placeholder="kg"
+                    value={s.weight ?? ''}
+                    onChange={(e) => set(p => ({ ...p, weight: e.target.value === '' ? null : Number(e.target.value) }))}
+                    className={inputCls} style={inputStyle}
                   />
-                  <span className="text-xs" style={{ color: 'var(--muted)' }}>
-                    ×
-                  </span>
+                  <span className="text-xs" style={{ color: 'var(--muted)' }}>×</span>
                   <input
-                    type="number"
-                    inputMode="numeric"
-                    placeholder="reps"
-                    value={state.reps ?? ''}
-                    onChange={(e) =>
-                      set((prev) => ({
-                        ...prev,
-                        reps: e.target.value === '' ? null : Number(e.target.value),
-                      }))
-                    }
-                    className="flex-1 px-3 py-2 rounded-lg text-sm text-center"
-                    style={{
-                      background: 'var(--muted-bg)',
-                      border: '1px solid var(--card-border)',
-                      color: 'var(--foreground)',
-                    }}
+                    type="number" inputMode="numeric" placeholder="reps"
+                    value={s.reps ?? ''}
+                    onChange={(e) => set(p => ({ ...p, reps: e.target.value === '' ? null : Number(e.target.value) }))}
+                    className={inputCls} style={inputStyle}
                   />
                 </div>
               ))}
               <div className="flex gap-2">
                 <button
                   onClick={() => setLogging(false)}
-                  className="flex-1 py-2 rounded-xl text-sm font-semibold"
-                  style={{
-                    background: 'var(--muted-bg)',
-                    color: 'var(--foreground)',
-                    border: '1px solid var(--card-border)',
-                  }}
+                  className="flex-1 py-2 text-xs font-bold border"
+                  style={{ borderColor: 'var(--card-border)', color: 'var(--muted)', background: 'var(--background)' }}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={!canSave}
-                  className="flex-1 py-2 rounded-xl text-sm font-bold disabled:opacity-40"
-                  style={{ background: 'var(--accent)', color: '#fff' }}
+                  disabled={set1.reps === null || set2.reps === null}
+                  className="flex-1 py-2 text-xs font-black uppercase tracking-widest disabled:opacity-30"
+                  style={{ background: 'var(--accent)', color: 'var(--accent-fg)' }}
                 >
                   Save
                 </button>
@@ -201,46 +129,30 @@ export default function ExerciseLogCard({
             </div>
           )}
 
-          {/* History */}
           {logs.length > 0 && (
-            <div>
-              <p
-                className="text-xs font-semibold mb-2"
-                style={{ color: 'var(--muted)' }}
-              >
-                HISTORY
+            <div className="px-4 pb-3" style={{ borderTop: '1px solid var(--divider)' }}>
+              <p className="text-xs font-bold uppercase tracking-widest py-2" style={{ color: 'var(--muted)' }}>
+                History
               </p>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {[...logs].reverse().map((log) => (
                   <div
                     key={log.date}
-                    className="flex items-center justify-between rounded-lg px-3 py-2"
-                    style={{
-                      background: 'var(--muted-bg)',
-                      border: '1px solid var(--card-border)',
-                    }}
+                    className="flex items-center justify-between px-3 py-2 border"
+                    style={{ borderColor: 'var(--divider)', background: 'var(--background)' }}
                   >
                     <div>
-                      <p
-                        className="text-xs font-semibold"
-                        style={{ color: 'var(--foreground)' }}
-                      >
+                      <p className="text-xs font-bold" style={{ color: 'var(--foreground)' }}>
                         {formatDate(log.date)}
                       </p>
                       <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                        {log.sets
-                          .map((s) =>
-                            s.weight !== null
-                              ? `${s.weight}kg × ${s.reps}`
-                              : `${s.reps} reps`
-                          )
-                          .join('  ·  ')}
+                        {log.sets.map(s => s.weight !== null ? `${s.weight}kg×${s.reps}` : `${s.reps} reps`).join('  ·  ')}
                       </p>
                     </div>
                     <button
                       onClick={() => onDeleteLog(log.date)}
-                      className="text-xs px-2 py-1 rounded-lg"
-                      style={{ color: 'var(--muted)', background: 'var(--card-border)' }}
+                      className="text-xs px-2 py-1 border"
+                      style={{ borderColor: 'var(--divider)', color: 'var(--muted)' }}
                     >
                       ✕
                     </button>

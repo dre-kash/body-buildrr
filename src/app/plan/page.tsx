@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { WeeklyPlan, ProgressionStore } from '@/lib/types';
+import { getCurrentUser, logout, storageKey } from '@/lib/auth';
+import { WeeklyPlan, ProgressionStore, User } from '@/lib/types';
 import WeeklyPlanView from '@/components/plan/WeeklyPlan';
 import ProgressionTracker from '@/components/tracker/ProgressionTracker';
 
@@ -11,9 +11,63 @@ type Tab = 'plan' | 'tracker';
 
 export default function PlanPage() {
   const router = useRouter();
-  const [plan] = useLocalStorage<WeeklyPlan | null>('bb_plan', null);
-  const [store, setStore] = useLocalStorage<ProgressionStore>('bb_progression', {});
+  const [user, setUser] = useState<User | null>(null);
+  const [plan, setPlan] = useState<WeeklyPlan | null>(null);
+  const [store, setStore] = useState<ProgressionStore>({});
   const [tab, setTab] = useState<Tab>('plan');
+  const [planKey, setPlanKey] = useState('');
+  const [progressionKey, setProgressionKey] = useState('');
+  const [workoutKey, setWorkoutKey] = useState('');
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const u = getCurrentUser();
+    if (!u) {
+      router.replace('/auth');
+      return;
+    }
+    setUser(u);
+
+    const pKey = storageKey('bb_plan', u.id);
+    const progKey = storageKey('bb_progression', u.id);
+    const wKey = storageKey('bb_active_workout', u.id);
+    setPlanKey(pKey);
+    setProgressionKey(progKey);
+    setWorkoutKey(wKey);
+
+    try {
+      const rawPlan = localStorage.getItem(pKey);
+      if (rawPlan) setPlan(JSON.parse(rawPlan));
+    } catch { /* ignore */ }
+
+    try {
+      const rawStore = localStorage.getItem(progKey);
+      if (rawStore) setStore(JSON.parse(rawStore));
+    } catch { /* ignore */ }
+
+    setReady(true);
+  }, [router]);
+
+  function handleStoreChange(updated: ProgressionStore) {
+    setStore(updated);
+    try {
+      localStorage.setItem(progressionKey, JSON.stringify(updated));
+    } catch { /* ignore */ }
+  }
+
+  function handleLogout() {
+    logout();
+    router.replace('/auth');
+  }
+
+  function handleRebuild() {
+    try {
+      localStorage.removeItem(planKey);
+    } catch { /* ignore */ }
+    router.push('/');
+  }
+
+  if (!ready) return null;
 
   if (!plan) {
     return (
@@ -21,13 +75,13 @@ export default function PlanPage() {
         className="min-h-screen flex flex-col items-center justify-center gap-4 p-8"
         style={{ background: 'var(--background)' }}
       >
-        <p className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>
-          No plan found
+        <p className="text-lg font-black" style={{ color: 'var(--foreground)' }}>
+          No programme found
         </p>
         <button
           onClick={() => router.push('/')}
-          className="px-6 py-3 rounded-xl font-bold text-sm"
-          style={{ background: 'var(--accent)', color: '#fff' }}
+          className="px-6 py-3 text-xs font-black uppercase tracking-widest"
+          style={{ background: 'var(--accent)', color: 'var(--accent-fg)' }}
         >
           Build My Programme
         </button>
@@ -36,59 +90,53 @@ export default function PlanPage() {
   }
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ background: 'var(--background)' }}
-    >
-      {/* Top nav */}
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
+      {/* Header */}
       <header
         className="sticky top-0 z-10 px-4 pt-4 pb-0"
-        style={{ background: 'var(--background)' }}
+        style={{ background: 'var(--background)', borderBottom: '1px solid var(--divider)' }}
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-2xl font-black" style={{ color: 'var(--accent)' }}>
+            <h1 className="text-xl font-black tracking-tight" style={{ color: 'var(--foreground)' }}>
               BodyBuildrr
             </h1>
             <p className="text-xs" style={{ color: 'var(--muted)' }}>
-              Your weekly programme
+              {user?.name}
             </p>
           </div>
-          <button
-            onClick={() => router.push('/')}
-            className="text-xs px-3 py-2 rounded-lg font-semibold"
-            style={{
-              background: 'var(--muted-bg)',
-              color: 'var(--muted)',
-              border: '1px solid var(--card-border)',
-            }}
-          >
-            Rebuild
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRebuild}
+              className="text-xs px-3 py-1.5 border font-bold"
+              style={{ borderColor: 'var(--card-border)', color: 'var(--muted)', background: 'var(--card)' }}
+            >
+              Rebuild
+            </button>
+            <button
+              onClick={handleLogout}
+              className="text-xs px-3 py-1.5 border font-bold"
+              style={{ borderColor: 'var(--card-border)', color: 'var(--muted)', background: 'var(--card)' }}
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}
-        <div
-          className="flex rounded-xl p-1 mb-1"
-          style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}
-        >
-          {(
-            [
-              { id: 'plan', label: '📋 Weekly Plan' },
-              { id: 'tracker', label: '📊 Progression' },
-            ] as { id: Tab; label: string }[]
-          ).map(({ id, label }) => (
+        <div className="flex gap-0">
+          {(['plan', 'tracker'] as Tab[]).map((t) => (
             <button
-              key={id}
-              onClick={() => setTab(id)}
-              className="flex-1 py-2 rounded-lg text-sm font-bold transition-all"
+              key={t}
+              onClick={() => setTab(t)}
+              className="flex-1 py-2.5 text-xs font-black uppercase tracking-widest border-b-2 transition-colors"
               style={{
-                background: tab === id ? 'var(--card)' : 'transparent',
-                color: tab === id ? 'var(--accent)' : 'var(--muted)',
-                boxShadow: tab === id ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+                borderColor: tab === t ? 'var(--foreground)' : 'transparent',
+                color: tab === t ? 'var(--foreground)' : 'var(--muted)',
+                background: 'transparent',
               }}
             >
-              {label}
+              {t === 'plan' ? 'Weekly Plan' : 'Progression'}
             </button>
           ))}
         </div>
@@ -96,12 +144,18 @@ export default function PlanPage() {
 
       {/* Content */}
       <main className="flex-1 px-4 py-4">
-        {tab === 'plan' && <WeeklyPlanView plan={plan} />}
+        {tab === 'plan' && (
+          <WeeklyPlanView
+            plan={plan}
+            userId={user!.id}
+            workoutStorageKey={workoutKey}
+          />
+        )}
         {tab === 'tracker' && (
           <ProgressionTracker
             plan={plan}
             store={store}
-            onStoreChange={setStore}
+            onStoreChange={handleStoreChange}
           />
         )}
       </main>

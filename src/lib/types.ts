@@ -1,4 +1,4 @@
-export type Goal = 'strength' | 'hypertrophy' | 'general_fitness';
+export type Goal = 'strength' | 'hypertrophy' | 'muscular_endurance';
 export type Equipment = 'full_gym' | 'dumbbells' | 'bodyweight';
 export type FocusMuscle =
   | 'chest'
@@ -136,4 +136,51 @@ export interface ExerciseSessionLog {
 
 export interface ProgressionStore {
   [exerciseId: string]: ExerciseSessionLog[];
+}
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+  createdAt: string;
+}
+
+// ─── Active Workout ───────────────────────────────────────────────────────────
+
+export interface LiveSetLog {
+  weight: string;
+  reps: string;
+  logged: boolean;
+}
+
+export interface ActiveWorkout {
+  userId: string;
+  day: Day;
+  session: Session;
+  startedAt: string;
+  sets: Record<string, [LiveSetLog, LiveSetLog]>; // exerciseId → [set1, set2]
+}
+
+// ─── Workout History ──────────────────────────────────────────────────────────
+
+export interface CompletedWorkout {
+  id: string;
+  day: Day;
+  sessionLabel: string;
+  sessionType: SessionType;
+  startedAt: string;
+  completedAt: string;
+  durationMinutes: number;
+  exercises: {
+    exerciseId: string;
+    exerciseName: string;
+    sets: SetLog[];
+  }[];
+}
+
+export interface WorkoutHistory {
+  [id: string]: CompletedWorkout;
 }

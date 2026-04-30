@@ -1,39 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mono:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-border: #e2e8f0;
-  --accent: #f97316;
-  --accent-dim: #fed7aa;
-  --muted: #64748b;
-  --muted-bg: #f1f5f9;
-}
-
-.dark {
-  --background: #0a0f1e;
-  --foreground: #e2e8f0;
-  --card: #111827;
-  --card-border: #1e293b;
-  --accent: #f97316;
-  --accent-dim: #431407;
-  --muted: #94a3b8;
-  --muted-bg: #1e293b;
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #f7f7f7;
+  --card-border: #e0e0e0;
+  --accent: #000000;
+  --accent-fg: #ffffff;
+  --accent-dim: #f0f0f0;
+  --muted: #6b6b6b;
+  --muted-bg: #f2f2f2;
+  --divider: #e0e0e0;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --background: #0a0f1e;
-    --foreground: #e2e8f0;
-    --card: #111827;
-    --card-border: #1e293b;
-    --accent: #f97316;
-    --accent-dim: #431407;
-    --muted: #94a3b8;
-    --muted-bg: #1e293b;
+  :root {
+    --background: #000000;
+    --foreground: #ffffff;
+    --card: #111111;
+    --card-border: #2a2a2a;
+    --accent: #ffffff;
+    --accent-fg: #000000;
+    --accent-dim: #1a1a1a;
+    --muted: #888888;
+    --muted-bg: #1a1a1a;
+    --divider: #2a2a2a;
   }
 }
 
@@ -43,7 +37,6 @@
   --color-card: var(--card);
   --color-card-border: var(--card-border);
   --color-accent: var(--accent);
-  --color-accent-dim: var(--accent-dim);
   --color-muted: var(--muted);
   --color-muted-bg: var(--muted-bg);
 }
@@ -59,19 +52,22 @@ html {
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Noto Sans Mono', 'Courier New', monospace;
   min-height: 100vh;
 }
 
-/* Scrollbar styling */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--card-border);
-  border-radius: 3px;
+  background: var(--divider);
 }

@@ -10,84 +10,64 @@ interface Props {
   onStoreChange: (store: ProgressionStore) => void;
 }
 
-interface ExerciseEntry {
-  id: string;
-  name: string;
-  dayLabel: string;
-}
+interface ExEntry { id: string; name: string; dayLabel: string; }
 
 export default function ProgressionTracker({ plan, store, onStoreChange }: Props) {
-  // Collect all unique exercises across the plan (maintain order)
   const seen = new Set<string>();
-  const exercises: ExerciseEntry[] = [];
+  const exercises: ExEntry[] = [];
 
   for (const dayPlan of plan.days) {
     if (!dayPlan.isTrainingDay || !dayPlan.session) continue;
-    const { session } = dayPlan;
-    for (const block of session.blocks) {
+    for (const block of dayPlan.session.blocks) {
       for (const ex of block.exercises) {
         if (!seen.has(ex.exerciseId)) {
           seen.add(ex.exerciseId);
           exercises.push({
             id: ex.exerciseId,
             name: ex.exerciseName,
-            dayLabel: `${dayPlan.day.charAt(0).toUpperCase() + dayPlan.day.slice(1)} — ${session.label}`,
+            dayLabel: `${dayPlan.day.charAt(0).toUpperCase() + dayPlan.day.slice(1)} — ${dayPlan.session.label}`,
           });
         }
       }
     }
   }
 
-  const readyCount = exercises.filter((ex) =>
-    store[ex.id] &&
-    store[ex.id].length > 0 &&
-    store[ex.id][store[ex.id].length - 1].sets.every(
-      (s) => s.reps !== null
-    )
-  ).length;
+  const readyCount = exercises.filter((ex) => {
+    const logs = store[ex.id];
+    return logs?.length > 0 && logs[logs.length - 1].sets.every(s => s.reps !== null);
+  }).length;
 
-  // Group exercises by session label
-  const grouped = new Map<string, ExerciseEntry[]>();
+  const grouped = new Map<string, ExEntry[]>();
   for (const ex of exercises) {
-    const group = grouped.get(ex.dayLabel) ?? [];
-    group.push(ex);
-    grouped.set(ex.dayLabel, group);
+    const g = grouped.get(ex.dayLabel) ?? [];
+    g.push(ex);
+    grouped.set(ex.dayLabel, g);
   }
 
   return (
     <div className="space-y-6">
-      {/* Summary banner */}
-      <div
-        className="rounded-2xl p-4"
-        style={{
-          background: 'var(--muted-bg)',
-          border: '1px solid var(--card-border)',
-        }}
-      >
-        <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--muted)' }}>
+      {/* Banner */}
+      <div className="border p-4" style={{ borderColor: 'var(--card-border)', background: 'var(--card)' }}>
+        <p className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: 'var(--muted)' }}>
           Double Progression
         </p>
-        <p className="text-sm" style={{ color: 'var(--foreground)' }}>
-          Increase reps each session until you hit the top of the rep range across{' '}
-          <strong>both sets</strong>, then increase the weight.
+        <p className="text-xs" style={{ color: 'var(--foreground)' }}>
+          Increase reps each session until both sets hit the top of the rep range, then add weight.
         </p>
         {readyCount > 0 && (
-          <div
-            className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg"
-            style={{ background: 'var(--accent-dim)', border: '1px solid var(--accent)' }}
-          >
-            <span style={{ color: 'var(--accent)' }}>⬆</span>
-            <span className="text-sm font-semibold" style={{ color: 'var(--accent)' }}>
+          <div className="mt-3 border px-3 py-2 flex items-center gap-2" style={{ borderColor: 'var(--foreground)' }}>
+            <span className="text-sm">↑</span>
+            <p className="text-xs font-bold" style={{ color: 'var(--foreground)' }}>
               {readyCount} exercise{readyCount > 1 ? 's' : ''} ready to progress
-            </span>
+            </p>
           </div>
         )}
       </div>
 
-      {/* Per-session groups */}
+      {/* Per session */}
       {Array.from(grouped.entries()).map(([sessionLabel, exList]) => (
-        <div key={sessionLabel} className="space-y-3">
-          <h3 className="text-sm font-black uppercase tracking-widest" style={{ color: 'var(--muted)' }}>
+        <div key={sessionLabel} className="space-y-2">
+          <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--muted)' }}>
             {sessionLabel}
           </h3>
           {exList.map((ex) => (
@@ -97,12 +77,8 @@ export default function ProgressionTracker({ plan, store, onStoreChange }: Props
               exerciseName={ex.name}
               logs={store[ex.id] ?? []}
               goal={plan.userInputs.goal}
-              onAddLog={(sets: SetLog[]) =>
-                onStoreChange(addLog(store, ex.id, sets))
-              }
-              onDeleteLog={(date: string) =>
-                onStoreChange(deleteLog(store, ex.id, date))
-              }
+              onAddLog={(sets: SetLog[]) => onStoreChange(addLog(store, ex.id, sets))}
+              onDeleteLog={(date: string) => onStoreChange(deleteLog(store, ex.id, date))}
             />
           ))}
         </div>

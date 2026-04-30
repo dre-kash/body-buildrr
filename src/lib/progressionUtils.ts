@@ -4,7 +4,7 @@ export function getTopOfRepRange(goal: Goal): number {
   const map: Record<Goal, number> = {
     strength: 6,
     hypertrophy: 12,
-    general_fitness: 15,
+    muscular_endurance: 20,
   };
   return map[goal];
 }
@@ -16,7 +16,6 @@ export function isReadyToProgress(
   if (logs.length === 0) return false;
   const latest = logs[logs.length - 1];
   const top = getTopOfRepRange(goal);
-  // All sets must have been logged and each must hit the top of range
   return (
     latest.sets.length >= 2 &&
     latest.sets.every(
@@ -41,7 +40,6 @@ export function addLog(
 ): ProgressionStore {
   const existing = store[exerciseId] ?? [];
   const today = new Date().toISOString().split('T')[0];
-  // Replace today's log if it exists, otherwise append
   const withoutToday = existing.filter((l) => !l.date.startsWith(today));
   return {
     ...store,
