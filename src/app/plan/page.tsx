@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getCurrentUser, logout, storageKey } from '@/lib/auth';
-import { WeeklyPlan, ProgressionStore, User } from '@/lib/types';
+import { WeeklyPlan, ProgressionStore, User, Exercise, Day, BlockExercise } from '@/lib/types';
 import WeeklyPlanView from '@/components/plan/WeeklyPlan';
 import ProgressionTracker from '@/components/tracker/ProgressionTracker';
 
@@ -52,6 +52,45 @@ export default function PlanPage() {
     setStore(updated);
     try {
       localStorage.setItem(progressionKey, JSON.stringify(updated));
+    } catch { /* ignore */ }
+  }
+
+  function handleSwapExercise(day: Day, blockId: string, oldExerciseId: string, newExercise: Exercise) {
+    if (!plan) return;
+    const updatedPlan: WeeklyPlan = {
+      ...plan,
+      days: plan.days.map((d) => {
+        if (d.day !== day || !d.session) return d;
+        return {
+          ...d,
+          session: {
+            ...d.session,
+            blocks: d.session.blocks.map((block) => {
+              if (block.id !== blockId) return block;
+              return {
+                ...block,
+                exercises: block.exercises.map((ex): BlockExercise => {
+                  if (ex.exerciseId !== oldExerciseId) return ex;
+                  return {
+                    exerciseId: newExercise.id,
+                    exerciseName: newExercise.name,
+                    pattern: newExercise.pattern,
+                    primaryMuscles: newExercise.primaryMuscles,
+                    secondaryMuscles: newExercise.secondaryMuscles,
+                    sets: ex.sets,
+                    repRange: ex.repRange,
+                    isCompound: newExercise.isCompound,
+                  };
+                }),
+              };
+            }),
+          },
+        };
+      }),
+    };
+    setPlan(updatedPlan);
+    try {
+      localStorage.setItem(planKey, JSON.stringify(updatedPlan));
     } catch { /* ignore */ }
   }
 
@@ -149,6 +188,7 @@ export default function PlanPage() {
             plan={plan}
             userId={user!.id}
             workoutStorageKey={workoutKey}
+            onSwapExercise={handleSwapExercise}
           />
         )}
         {tab === 'tracker' && (

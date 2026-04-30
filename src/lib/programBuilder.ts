@@ -12,6 +12,7 @@ import {
   FocusMuscle,
   Day,
   Goal,
+  Equipment,
   AccessoryCategory,
 } from './types';
 import { EXERCISES } from './exercises';
@@ -366,10 +367,15 @@ function pickExercise(
   used: Set<string>,
   focusMuscles: FocusMuscle[],
   isPrimary: boolean,
-  sessionIndex: number
+  sessionIndex: number,
+  excludeChestAreas?: ('upper' | 'mid' | 'lower')[]
 ): Exercise | null {
   const candidates = pool
-    .filter((ex) => ex.pattern === pattern && !used.has(ex.id))
+    .filter((ex) => {
+      if (ex.pattern !== pattern || used.has(ex.id)) return false;
+      if (excludeChestAreas && ex.chestArea && excludeChestAreas.includes(ex.chestArea)) return false;
+      return true;
+    })
     .map((ex) => ({
       ex,
       score: scoreExerciseForFocus(ex, focusMuscles, isPrimary),
@@ -402,9 +408,10 @@ function pickAccessory(
 
 // ─── Block Grouping ───────────────────────────────────────────────────────────
 
-function groupIntoBlocks(exercises: Exercise[], goal: Goal): ExerciseBlock[] {
+function groupIntoBlocks(exercises: Exercise[], goal: Goal, equipment: Equipment): ExerciseBlock[] {
   const repRange = REP_RANGES[goal];
   const restSecs = REST_SECONDS[goal];
+  const allowTrisets = equipment === 'bodyweight';
 
   const toBlockEx = (ex: Exercise): BlockExercise => ({
     exerciseId: ex.id,
@@ -425,8 +432,8 @@ function groupIntoBlocks(exercises: Exercise[], goal: Goal): ExerciseBlock[] {
   while (remaining.length > 0) {
     const first = remaining.shift()!;
 
-    // Try to find a triset partner (two more compatible exercises)
-    if (remaining.length >= 2) {
+    // Trisets only allowed for bodyweight programmes
+    if (allowTrisets && remaining.length >= 2) {
       const p2Idx = remaining.findIndex((ex) => canSuperset(first, ex));
       if (p2Idx !== -1) {
         const p2 = remaining[p2Idx];
@@ -450,7 +457,7 @@ function groupIntoBlocks(exercises: Exercise[], goal: Goal): ExerciseBlock[] {
       }
     }
 
-    // Try superset
+    // Superset
     if (remaining.length >= 1) {
       const pIdx = remaining.findIndex((ex) => canSuperset(first, ex));
       if (pIdx !== -1) {
@@ -566,13 +573,19 @@ function buildSession(
         break;
       if (!focusPatterns.includes(pattern)) continue;
 
+      // For horizontal_push with chest focus: enforce different chestArea
+      const usedChestAreas = selected
+        .filter((ex) => ex.pattern === pattern && ex.chestArea)
+        .map((ex) => ex.chestArea!);
+
       const ex = pickExercise(
         pool,
         pattern,
         used,
         focusMuscles,
         true,
-        typeIndex + 1
+        typeIndex + 1,
+        usedChestAreas.length > 0 ? usedChestAreas : undefined
       );
       if (ex) {
         selected.push(ex);
@@ -656,7 +669,7 @@ function buildSession(
     }
   }
 
-  const blocks = groupIntoBlocks(selected, goal);
+  const blocks = groupIntoBlocks(selected, goal, inputs.equipment);
   const duration = estimateDuration(blocks, goal);
   const muscles = summariseMuscles(selected);
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { WeeklyPlan, UserInputs } from '@/lib/types';
+import { WeeklyPlan, UserInputs, Exercise, Day } from '@/lib/types';
 import DayCard from './DayCard';
 import RestDayCard from './RestDayCard';
 
@@ -25,9 +25,10 @@ interface Props {
   plan: WeeklyPlan;
   userId: string;
   workoutStorageKey: string;
+  onSwapExercise: (day: Day, blockId: string, oldExerciseId: string, newExercise: Exercise) => void;
 }
 
-export default function WeeklyPlanView({ plan, userId, workoutStorageKey }: Props) {
+export default function WeeklyPlanView({ plan, userId, workoutStorageKey, onSwapExercise }: Props) {
   const { userInputs, days } = plan;
   const trainingCount = days.filter((d) => d.isTrainingDay).length;
 
@@ -59,8 +60,10 @@ export default function WeeklyPlanView({ plan, userId, workoutStorageKey }: Prop
             key={dayPlan.day}
             dayPlan={dayPlan}
             goal={userInputs.goal}
+            equipment={userInputs.equipment}
             userId={userId}
             workoutStorageKey={workoutStorageKey}
+            onSwapExercise={onSwapExercise}
           />
         ) : (
           <RestDayCard key={dayPlan.day} day={dayPlan.day} />

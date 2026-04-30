@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
-import { storageKey } from '@/lib/auth';
+import { getCurrentUser, storageKey } from '@/lib/auth';
 import { ActiveWorkout, ProgressionStore } from '@/lib/types';
 import ActiveWorkoutView from '@/components/workout/ActiveWorkout';
 
@@ -14,6 +13,7 @@ export default function WorkoutPage() {
   const [workoutKey, setWorkoutKey] = useState('');
   const [progressionKey, setProgressionKey] = useState('');
   const [historyKey, setHistoryKey] = useState('');
+  const [planKey, setPlanKey] = useState('');
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -26,10 +26,12 @@ export default function WorkoutPage() {
     const wKey = storageKey('bb_active_workout', user.id);
     const pKey = storageKey('bb_progression', user.id);
     const hKey = storageKey('bb_history', user.id);
+    const planK = storageKey('bb_plan', user.id);
 
     setWorkoutKey(wKey);
     setProgressionKey(pKey);
     setHistoryKey(hKey);
+    setPlanKey(planK);
 
     try {
       const raw = localStorage.getItem(wKey);
@@ -67,6 +69,8 @@ export default function WorkoutPage() {
       progressionKey={progressionKey}
       historyKey={historyKey}
       workoutKey={workoutKey}
+      planKey={planKey}
+      equipment={workout.equipment}
       onStoreChange={handleStoreChange}
     />
   );

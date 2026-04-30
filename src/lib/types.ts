@@ -81,6 +81,7 @@ export interface Exercise {
   secondaryMuscles: Muscle[];
   equipment: Equipment[];
   isCompound: boolean;
+  chestArea?: 'upper' | 'mid' | 'lower'; // horizontal_push only
 }
 
 export interface BlockExercise {
@@ -162,6 +163,7 @@ export interface ActiveWorkout {
   session: Session;
   startedAt: string;
   sets: Record<string, [LiveSetLog, LiveSetLog]>; // exerciseId → [set1, set2]
+  equipment: Equipment;
 }
 
 // ─── Workout History ──────────────────────────────────────────────────────────
