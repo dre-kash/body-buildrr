@@ -49,26 +49,25 @@ const MINS_PER_STRAIGHT_BLOCK: Record<Goal, number> = {
 };
 
 const MINS_PER_SUPERSET_BLOCK: Record<Goal, number> = {
-  strength: 14,
-  hypertrophy: 10,
-  muscular_endurance: 7,
-};
-
-const MINS_PER_TRISET_BLOCK: Record<Goal, number> = {
-  strength: 16,
-  hypertrophy: 12,
+  strength: 20,
+  hypertrophy: 14,
   muscular_endurance: 9,
 };
 
-const WARMUP_MINS = 5;
+const MINS_PER_TRISET_BLOCK: Record<Goal, number> = {
+  strength: 24,
+  hypertrophy: 18,
+  muscular_endurance: 11,
+};
 
-// Exercise slots by duration (total exercises per session)
-const EXERCISE_SLOTS: Record<number, number> = {
-  30: 3,
-  45: 4,
-  60: 5,
-  75: 6,
-  90: 8,
+const WARMUP_MINS = 8;
+
+// Exercise slots per session, calibrated so estimated duration ≈ selected duration.
+// Strength has longer rests so fewer exercises fit; ME has shorter rests so more fit.
+const EXERCISE_SLOTS: Record<Goal, Record<number, number>> = {
+  strength:           { 30: 3, 45: 4, 60: 5, 75: 6, 90: 7 },
+  hypertrophy:        { 30: 3, 45: 5, 60: 7, 75: 9, 90: 11 },
+  muscular_endurance: { 30: 4, 45: 6, 60: 8, 75: 10, 90: 12 },
 };
 
 // ─── Session Split Logic ──────────────────────────────────────────────────────
@@ -532,7 +531,7 @@ function buildSession(
   pool: Exercise[]
 ): Session {
   const { goal, sessionDuration, focusMuscles, focusPriority } = inputs;
-  const totalSlots = EXERCISE_SLOTS[sessionDuration];
+  const totalSlots = EXERCISE_SLOTS[goal][sessionDuration];
   const template = getTemplate(type, typeIndex);
   const used = new Set<string>();
   const selected: Exercise[] = [];
@@ -665,6 +664,26 @@ function buildSession(
       if (ex) {
         selected.push(ex);
         used.add(ex.id);
+      }
+    }
+  }
+
+  // ── 6. Guarantee direct bicep + tricep work when arms is a focus muscle ────────
+  // Runs after all slot logic so it adds exercises even when slots are full.
+  if (
+    focusMuscles.includes('arms') &&
+    FOCUS_TO_PATTERNS.arms.compatibleSessions.includes(type)
+  ) {
+    for (const cat of ['biceps', 'triceps'] as const) {
+      const hasDirectWork = selected.some(
+        (ex) => ex.pattern === 'accessory' && ex.accessoryCategory === cat
+      );
+      if (!hasDirectWork) {
+        const ex = pickAccessory(pool, cat, used, typeIndex);
+        if (ex) {
+          selected.push(ex);
+          used.add(ex.id);
+        }
       }
     }
   }

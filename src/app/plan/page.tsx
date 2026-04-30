@@ -3,18 +3,26 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getCurrentUser, logout, storageKey } from '@/lib/auth';
-import { WeeklyPlan, ProgressionStore, User, Exercise, Day, BlockExercise } from '@/lib/types';
+import { WeeklyPlan, ProgressionStore, WorkoutHistory, User, Exercise, Day, BlockExercise } from '@/lib/types';
 import WeeklyPlanView from '@/components/plan/WeeklyPlan';
 import ProgressionTracker from '@/components/tracker/ProgressionTracker';
+import Dashboard from '@/components/dashboard/Dashboard';
 
-type Tab = 'plan' | 'tracker';
+type Tab = 'overview' | 'plan' | 'tracker';
+
+const TAB_LABELS: Record<Tab, string> = {
+  overview: 'Overview',
+  plan: 'Weekly Plan',
+  tracker: 'Progression',
+};
 
 export default function PlanPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [plan, setPlan] = useState<WeeklyPlan | null>(null);
   const [store, setStore] = useState<ProgressionStore>({});
-  const [tab, setTab] = useState<Tab>('plan');
+  const [history, setHistory] = useState<WorkoutHistory>({});
+  const [tab, setTab] = useState<Tab>('overview');
   const [planKey, setPlanKey] = useState('');
   const [progressionKey, setProgressionKey] = useState('');
   const [workoutKey, setWorkoutKey] = useState('');
@@ -31,6 +39,7 @@ export default function PlanPage() {
     const pKey = storageKey('bb_plan', u.id);
     const progKey = storageKey('bb_progression', u.id);
     const wKey = storageKey('bb_active_workout', u.id);
+    const histKey = storageKey('bb_history', u.id);
     setPlanKey(pKey);
     setProgressionKey(progKey);
     setWorkoutKey(wKey);
@@ -43,6 +52,11 @@ export default function PlanPage() {
     try {
       const rawStore = localStorage.getItem(progKey);
       if (rawStore) setStore(JSON.parse(rawStore));
+    } catch { /* ignore */ }
+
+    try {
+      const rawHistory = localStorage.getItem(histKey);
+      if (rawHistory) setHistory(JSON.parse(rawHistory));
     } catch { /* ignore */ }
 
     setReady(true);
@@ -164,7 +178,7 @@ export default function PlanPage() {
 
         {/* Tabs */}
         <div className="flex gap-0">
-          {(['plan', 'tracker'] as Tab[]).map((t) => (
+          {(['overview', 'plan', 'tracker'] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -175,7 +189,7 @@ export default function PlanPage() {
                 background: 'transparent',
               }}
             >
-              {t === 'plan' ? 'Weekly Plan' : 'Progression'}
+              {TAB_LABELS[t]}
             </button>
           ))}
         </div>
@@ -183,6 +197,13 @@ export default function PlanPage() {
 
       {/* Content */}
       <main className="flex-1 px-4 py-4">
+        {tab === 'overview' && (
+          <Dashboard
+            plan={plan}
+            history={history}
+            userName={user!.name}
+          />
+        )}
         {tab === 'plan' && (
           <WeeklyPlanView
             plan={plan}

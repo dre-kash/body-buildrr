@@ -41,7 +41,7 @@ export default function WeeklyPlanView({ plan, userId, workoutStorageKey, onSwap
           GOAL_LABELS[userInputs.goal],
           EQUIPMENT_LABELS[userInputs.equipment],
           `${trainingCount}×/week`,
-          `${userInputs.sessionDuration} min`,
+          `${userInputs.sessionDuration} min/session`,
         ].map((label) => (
           <span
             key={label}
